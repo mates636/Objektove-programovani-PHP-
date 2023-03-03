@@ -15,12 +15,12 @@ class LexicalAnalyzer
         $pattern = '[\t\f\r ]+';
         $str_tokens = preg_split(
             $pattern,
-            $newphrase
+            $newphrase,
         );
-        foreach($str_tokens){
-
-        }
-        return array();
+      // foreach($str_tokens){
+      //     
+      // }
+       return array();
     }
 }
 
@@ -79,10 +79,18 @@ class Literal extends Operand
 
 class Label extends  Operand
 {
+    public static function parse(string $token): Token|false{
+        if (preg_match("LABEL [a-zA-Z_$&%-*!?][a-zA-Z_$&%-*!?0-9]*/gm", $token))
+            return new Operand();
+    }
 }
 
 class Type extends Operand
 {
+    public static function parse(string $token): Token|false{
+        if(preg_match("(bool|int|string|nil)", $token))
+            return new Type();
+    }
 }
 
 enum VarType: string
