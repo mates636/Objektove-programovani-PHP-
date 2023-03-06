@@ -7,7 +7,8 @@ class Parser
 
 class LexicalAnalyzer
 {
-    var $tokenorder = [Header::class, Variable::class, Label::class,  Type::class, Operation::class];
+    var $tokenorder = [Header::class,NewLine::class, Variable::class,
+                        Constant::class,Type::class, Operation::class, Label::class];
     public function analyze(string $source): array
     {
         $result = [];
@@ -58,7 +59,7 @@ class NewLine extends Token
 {
     public static function parse(string $token): Token|false
     {
-        if (preg_match("/$/", $token))
+        if ($token == "\n")
             return new NewLine();
         else
             return false;
@@ -75,7 +76,10 @@ class Operation extends Token
     public static function parse(string $token): Token|false
     {
         if (preg_match("/([A-Z]+)/", $token, $matches)) {
-            $ins = Instruction::from($matches[1]);
+            $ins = Instruction::tryFrom($matches[1]);
+            if($ins == null){
+                return false;
+            }
             return new Operation($ins);
         } else
             return false;
@@ -106,8 +110,25 @@ class Variable extends Operand
     }
 }
 
-class Literal extends Operand
+class Constant extends Operand
 {
+    public VarType $constant;
+    public string $varname;
+    public function __construct(VarType $constant, string $varname)
+    {
+        $this->constant = $constant;
+        $this->varname = $varname;
+    }
+    public static function parse(string $token): Token|false
+    {
+        if (preg_match("/(bool|int|string|nil)@([a-zA-Z_$&%-*!?][a-zA-Z_$&%-*!?0-9]*)/", $token, $matches)) {
+            $constant = VarType::from($matches[1]);
+            $varname = $matches[2];
+            return new Constant($constant, $varname);
+        } else
+            return false;
+    }
+
 }
 
 class Label extends  Operand
@@ -119,7 +140,7 @@ class Label extends  Operand
     }
     public static function parse(string $token): Token|false
     {
-        if (preg_match("/(LABEL[a-zA-Z_$&%-*!?0-9]*)/", $token, $matches)) {
+        if (preg_match("/([a-zA-Z_$&%-*!?0-9]*)/", $token, $matches)) {
             $label = $matches[0];
             return new Label($label);
         } else
@@ -137,7 +158,7 @@ class Type extends Operand
     public static function parse(string $token): Token|false
     {
         if (preg_match("/(bool|int|string|nil)/", $token, $matches)) {
-            $vartype = VarType::from($matches[0]);
+            $vartype = VarType::from($matches[1]);
             return new Type($vartype);
         } else
             return false;
@@ -180,6 +201,7 @@ enum Instruction: string
     case And = 'AND';
     case Or = 'OR';
     case Not = 'NOT';
+    case Label = 'LABEL';
     case Int2Char = 'INT2CHAR';
     case String2Char = 'STRING2CHAR';
     case Read = 'READ';
