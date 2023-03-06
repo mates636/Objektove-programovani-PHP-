@@ -7,7 +7,7 @@ class Parser
 
 class LexicalAnalyzer
 {
-    var $tokenorder = [Header::class, Variable::class, Label::class, Type::class];
+    var $tokenorder = [Header::class, Variable::class, Label::class,  Type::class, Operation::class];
     public function analyze(string $source): array
     {
         $result = [];
@@ -68,7 +68,7 @@ class NewLine extends Token
 class Operation extends Token
 {
     public Instruction $ins;
-    public function __construct(Operation $ins)
+    public function __construct(Instruction $ins)
     {
         $this->ins = $ins;
     }
@@ -119,8 +119,8 @@ class Label extends  Operand
     }
     public static function parse(string $token): Token|false
     {
-        if (preg_match("/(LABEL [a-zA-Z_$&%-*!?0-9]*)/", $token, $matches)) {
-            $label = $matches[1];
+        if (preg_match("/(LABEL[a-zA-Z_$&%-*!?0-9]*)/", $token, $matches)) {
+            $label = $matches[0];
             return new Label($label);
         } else
             return false;
@@ -189,7 +189,6 @@ enum Instruction: string
     case GetChar = 'GETCHAR';
     case SetChar = 'SETCHAR';
     case Type = 'TYPE';
-    case Label = 'LABEL';
     case Jump = 'JUMP';
     case JumpIfEq = 'JUMPIFEQ';
     case JumpIfNeq = 'JUMPIFNEQ';

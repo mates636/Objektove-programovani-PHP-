@@ -18,12 +18,12 @@ class LexicalAnalyzerTest extends TestCase
             [
                 ".IPPcode23", [new Header]
             ],
-           //[
-           //    "", []
-           //],
-           //[
-           //    "\n", [new NewLine()]
-           //],
+            [
+                "", []
+            ],
+            //[
+            //    "\n", [new NewLine()]
+            //],
             [
                 "GF@gg", [new Variable(Frame::Global, "gg")]
             ],
@@ -31,9 +31,10 @@ class LexicalAnalyzerTest extends TestCase
                 "bool", [new Type(VarType::Bool)]
             ],
             [
-                "LABEL gg", [new Label("LABEL gg")]
+                "LABELgg", [new Label("LABELgg")]
             ],
             [
+
                 "WRITE", [new Operation(Instruction::Write)]
             ]
         ];
