@@ -7,29 +7,41 @@ class Parser
 
 class LexicalAnalyzer
 {
-    var $tokenorder = [Header::class,NewLine::class, Variable::class,
-                        Constant::class,Type::class, Operation::class, Label::class];
+    var $tokenorder = [
+        Header::class, NewLine::class, Variable::class,
+        Constant::class, Operation::class, Label::class
+    ];
     public function analyze(string $source): array
     {
         $result = [];
         $comment = '/#.*/';
         $empty_string = '';
-        $newphrase = str_replace($comment, $empty_string, $source);
+        $newphrase = preg_replace($comment, $empty_string, $source);
         $pattern = '/[\t\f\r ]+/';
-        $str_tokens = preg_split(
+        $tokenstmp = preg_split(
             $pattern,
             $newphrase,
             -1,
             PREG_SPLIT_NO_EMPTY
         );
-
+        $str_tokens = [];
+        foreach ($tokenstmp as $token) {
+            $splittokens = preg_split("/(\n)/", $token, -1, PREG_SPLIT_DELIM_CAPTURE | PREG_SPLIT_NO_EMPTY);
+            $str_tokens = array_merge($str_tokens, $splittokens);
+        }
         foreach ($str_tokens as $strtoken) {
+
+            $found = false;
             foreach ($this->tokenorder as $type) {
                 $parsedtoken =  $type::parse($strtoken);
                 if ($parsedtoken) {
+                    $found = true;
                     $result[] = $parsedtoken;
                     break;
                 }
+            }
+            if ($found == false) {
+                return false;
             }
         }
         return $result;
@@ -77,7 +89,7 @@ class Operation extends Token
     {
         if (preg_match("/([A-Z]+)/", $token, $matches)) {
             $ins = Instruction::tryFrom($matches[1]);
-            if($ins == null){
+            if ($ins == null) {
                 return false;
             }
             return new Operation($ins);
@@ -101,7 +113,7 @@ class Variable extends Operand
     }
     public static function parse(string $token): Token|false
     {
-        if (preg_match("/(LF|TF|GF)@([a-zA-Z_$&%-*!?][a-zA-Z_$&%-*!?0-9]*)/", $token, $matches)) {
+        if (preg_match("/^(LF|TF|GF)@([a-zA-Z_$&%-*!?][a-zA-Z_$&%-*!?0-9]*)/", $token, $matches)) {
             $frame = Frame::from($matches[1]);
             $varname = $matches[2];
             return new Variable($frame, $varname);
@@ -121,14 +133,13 @@ class Constant extends Operand
     }
     public static function parse(string $token): Token|false
     {
-        if (preg_match("/(bool|int|string|nil)@([a-zA-Z_$&%-*!?][a-zA-Z_$&%-*!?0-9]*)/", $token, $matches)) {
+        if (preg_match("/(bool|int|string|nil)@(.*)/", $token, $matches)) {
             $constant = VarType::from($matches[1]);
             $varname = $matches[2];
             return new Constant($constant, $varname);
         } else
             return false;
     }
-
 }
 
 class Label extends  Operand
