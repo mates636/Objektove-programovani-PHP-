@@ -2,17 +2,84 @@
 
 class Parser
 {
-    public function safsf($tokens)
+    var $errCode;
+    public function run()
     {
+        $source = stdin();
+        $out = $this->parse($source);
+        if ($out instanceof int) {
+            exit($this->errCode);
+        }
+        echo $out;
+    }
+    public function parse($source)
+    {
+        $lex = new LexicalAnalyzer();
+        $tokens = $lex->analyze($source);
+        if (!$tokens) {
+            $this->errCode = 23;
+            return $this->errCode;
+        }
+        $insEls = $this->processAll($tokens);
+        if (!$insEls) {
+            return $this->errCode;
+        }
+        return $this->writeXML($insEls);
+    }
+    public function writeXML($insEls)
+    {
+        $writer = new XMLWriter();
+        $writer->openMemory();
+        $writer->startDocument();
+        $writer->startElement('program');
+        $writer->startAttribute('language');
+        $writer->text('IPPcode23');
+        $writer->endAttribute();
+        $writer->endElement();
+        $order = 1;
+        foreach ($insEls as $insEl) {
 
-        //while ($tokens) {
-        //    if ($tokens == 0) {
-        //        exit(21);
-        //    }
-        //    if ($tokens[0] != ".IPPcode23") {
-        //        exit(21);
-        //    }
-        //}
+            $insEl->writeXML($writer, $order);
+            $order++;
+        }
+        $writer->endDocument();
+        return $writer->outputMemory();
+    }
+    public function processAll($tokens)
+    {
+        $insEls = [];
+        if (count($tokens) == 0) {
+            $this->errCode = 21;
+            return false;
+        }
+        if ($tokens[0] != ".IPPcode23") {
+            $this->errCode = 21;
+            return false;
+        }
+        $tokens = array_slice($tokens, 1);
+        $line = [];
+        foreach ($tokens as $token) {
+            if ($token instanceof NewLine) {
+                if (count($line) > 0) {
+                    $el = $this->processLine($line);
+                    if (!$el) {
+                        return false;
+                    }
+                    $insEls[] = $el;
+                }
+                $line = [];
+            } else {
+                $line[] = $token;
+            }
+        }
+        if (count($line) > 0) {
+            $el = $this->processLine($line);
+            if (!$el) {
+                return false;
+            }
+            $insEls[] = $el;
+        }
+        return $insEls;
     }
     public function processLine($tokens)
     {
@@ -46,7 +113,15 @@ class Parser
             case Instruction::Label:
             case Instruction::Jump:
             case Instruction::Call:
-                NoArguments();
+                if (count($tokens) != 2) {
+                    return false;
+                }
+                $arg = LabelArg($tokens[1]);
+                if (!$arg) {
+                    return false;
+                }
+                $insEl->args[] = $arg;
+                break;
                 break;
                 // <symb> argument
             case Instruction::Pushs:
@@ -440,7 +515,6 @@ enum Instruction: string
 
 function NoArguments()
 {
-    
 }
 
 function VarArg($token)
@@ -458,10 +532,10 @@ function VarArg($token)
 function LabelArg($token)
 {
     if (preg_match("/^([a-zA-Z_\$&%\-\*!\?][a-zA-Z_$&%\-\*!?0-9]*)/", $token)) {
-    $label = $token;
-    $l = new ArgumentElement();
-    $l->type = "label";
-    $l->value = "$label";
+        $label = $token;
+        $l = new ArgumentElement();
+        $l->type = "label";
+        $l->value = "$label";
     }
     return $l;
 }
